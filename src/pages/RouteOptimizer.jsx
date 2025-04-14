@@ -1,7 +1,8 @@
-// src/pages/
+// src/pages/RouteOptimizer.js
 import React, { useState, useEffect } from 'react';
 import TimeSelector from '../components/TimeSelector';
 import RouteMap from '../components/RouteMap';
+import StopSelector from '../components/StopSelector'; // Import the new component
 import { API_BASE_URL } from '../config';
 
 const RouteOptimizer = () => {
@@ -15,6 +16,7 @@ const RouteOptimizer = () => {
   const [routeData, setRouteData] = useState(null);
   const [mapUrl, setMapUrl] = useState(null);
   const [error, setError] = useState(null);
+  const [locationMode, setLocationMode] = useState('custom'); // 'custom' or 'random'
 
   // Fetch settings on component mount
   useEffect(() => {
@@ -36,25 +38,21 @@ const RouteOptimizer = () => {
     fetchSettings();
   }, []);
 
-  const handleAddStop = () => {
-    setStops([...stops, '']);
-  };
-
   const handleRemoveStop = (index) => {
     const newStops = [...stops];
     newStops.splice(index, 1);
     setStops(newStops);
   };
 
-  const handleStopChange = (index, value) => {
-    const newStops = [...stops];
-    newStops[index] = value;
-    setStops(newStops);
-  };
-
   const handleGenerateRoute = async () => {
     if (!selectedTime) {
       setError('Please select a time period');
+      return;
+    }
+
+    // Validate that we have at least one stop or using random mode
+    if (locationMode === 'custom' && stops.length === 0) {
+      setError('Please add at least one stop or switch to random stops');
       return;
     }
 
@@ -69,7 +67,7 @@ const RouteOptimizer = () => {
           hour: selectedTime.hour,
           day_of_week: selectedTime.day_of_week,
           depot_id: depot || undefined,
-          stop_ids: stops.filter(stop => stop.trim() !== '')
+          stop_ids: locationMode === 'custom' ? stops : [] // Only send stops if in custom mode
         })
       });
 
@@ -148,56 +146,114 @@ const RouteOptimizer = () => {
               </select>
             </div>
 
-            {/* Depot Input */}
+            {/* Location Mode Switcher */}
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Depot ID (Optional)</label>
-              <input
-                type="text"
-                value={depot}
-                onChange={(e) => setDepot(e.target.value)}
-                placeholder="Enter depot node ID"
-                className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-              />
-            </div>
-
-            {/* Stops Inputs */}
-            <div className="space-y-2">
-              <div className="flex justify-between items-center">
-                <label className="block text-sm font-medium text-gray-700">Stops</label>
+              <label className="block text-sm font-medium text-gray-700">Location Selection</label>
+              <div className="flex space-x-2">
                 <button
                   type="button"
-                  onClick={handleAddStop}
-                  className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                  onClick={() => setLocationMode('custom')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${
+                    locationMode === 'custom' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
                 >
-                  + Add Stop
+                  Custom Stops
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setLocationMode('random')}
+                  className={`flex-1 py-2 px-3 rounded-md text-sm font-medium ${
+                    locationMode === 'random' 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Random Stops
                 </button>
               </div>
-              
-              {stops.map((stop, index) => (
-                <div key={index} className="flex items-center space-x-2">
-                  <input
-                    type="text"
-                    value={stop}
-                    onChange={(e) => handleStopChange(index, e.target.value)}
-                    placeholder={`Stop ${index + 1} node ID`}
-                    className="block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveStop(index)}
-                    className="text-red-500 hover:text-red-700"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-
-              {stops.length === 0 && (
-                <p className="text-sm text-gray-500 italic">
-                  No stops added. Random stops will be used if none are specified.
-                </p>
-              )}
             </div>
+
+            {locationMode === 'custom' ? (
+              <div className="space-y-4">
+                {/* Depot Display (if selected) */}
+                {depot && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Depot</label>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="text"
+                        value={depot}
+                        readOnly
+                        className="block w-full bg-gray-100 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setDepot('')}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Stop Selector Component */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Search for Locations
+                  </label>
+                  <StopSelector 
+                    stops={stops} 
+                    setStops={setStops} 
+                    depot={depot} 
+                    setDepot={setDepot} 
+                  />
+                </div>
+
+                {/* Display Selected Stops */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-medium text-gray-700">Selected Stops</label>
+                  {stops.length === 0 ? (
+                    <p className="text-sm text-gray-500 italic">No stops selected yet. Use the search above to add stops.</p>
+                  ) : (
+                    <div className="max-h-40 overflow-y-auto">
+                      {stops.map((stop, index) => (
+                        <div key={index} className="flex items-center justify-between py-1">
+                          <span className="text-sm">{stop}</span>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveStop(index)}
+                            className="text-red-500 hover:text-red-700"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="p-4 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-600">
+                  Random stops will be generated for your route.
+                </p>
+                {depot && (
+                  <div className="mt-2">
+                    <p className="text-sm font-medium text-gray-700">Starting depot: {depot}</p>
+                    <button
+                      type="button"
+                      onClick={() => setDepot('')}
+                      className="text-xs text-red-500 hover:text-red-700"
+                    >
+                      Clear depot
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Generate Button */}
             <button

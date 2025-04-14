@@ -10,9 +10,12 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@mapbox/mapbox-gl-geocoder": "^5.0.3",
     "lucide-react": "^0.481.0",
+    "mapbox-gl": "^3.11.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-map-gl": "^8.0.3",
     "react-router-dom": "^7.3.0",
     "recharts": "^2.15.1"
   },

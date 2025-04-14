@@ -27,11 +27,10 @@ const CongestionMap = () => {
         const hotspotsData = await hotspotsResponse.json();
         setHotspots(hotspotsData.hotspots);
         
-        // Generate a sample route map with congestion data
         const routeParams = {
-          hour: 8, // Morning rush hour
-          day_of_week: 1, // Monday
-          map_type: 'enhanced' // Show full traffic view
+          hour: 8,
+          day_of_week: 1, 
+          map_type: 'enhanced' 
         };
         
         const mapResponse = await fetch(`${API_BASE_URL}/api/map/route`, {
